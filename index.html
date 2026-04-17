@@ -3,12 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>語文科：重組句子遊戲 (iPad版)</title>
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
-    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/scroll-behaviour.min.js"></script>
-
+    <title>語文科：重組句子遊戲</title>
     <style>
         :root {
             --bg-color: #000000;
@@ -24,14 +19,28 @@
             color: var(--text-color);
             margin: 0; padding: 10px;
             display: flex; flex-direction: column; align-items: center;
-            /* 防止 iPad 上意外的頁面滑動 */
-            overflow-x: hidden;
+            overflow-x: hidden; 
             touch-action: pan-y;
         }
         
+        /* 頁面控制 */
         .page { display: none; width: 100%; flex-direction: column; align-items: center; }
         .active { display: flex; }
 
+        /* 開始畫面專用樣式 */
+        .start-container {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 85vh; width: 100%; text-align: center;
+        }
+        .start-title { color: var(--accent-color); font-size: 3.5rem; margin-bottom: 40px; }
+        .main-btn {
+            padding: 30px 50px; font-size: 2.8rem; font-weight: bold; border-radius: 60px;
+            cursor: pointer; border: 4px solid white; margin: 15px; width: 80%; max-width: 500px;
+        }
+        #listenBtn { background-color: #4CAF50; color: white; }
+        #startGameBtn { background-color: var(--accent-color); color: black; display: none; border-color: black; }
+
+        /* 遊戲畫面樣式 */
         .img-container {
             width: 90%; max-width: 600px; height: 300px;
             margin: 10px 0; background-color: #111;
@@ -40,10 +49,10 @@
         }
         .top-img { width: 100%; height: 100%; object-fit: contain; }
 
-        h1 { color: var(--accent-color); font-size: 2.5rem; margin: 10px 0; }
+        h1 { color: var(--accent-color); font-size: 2.5rem; margin: 5px 0; }
         
         .pool {
-            display: flex; gap: 20px; margin: 20px 0;
+            display: flex; gap: 20px; margin: 10px 0;
             min-height: 140px; padding: 20px;
             border: 3px dashed #777; border-radius: 15px;
             width: 95%; justify-content: center; align-items: center; flex-wrap: wrap;
@@ -53,20 +62,27 @@
         .word {
             background-color: var(--word-bg);
             border: 5px solid var(--text-color);
-            padding: 20px 30px; border-radius: 15px;
-            font-size: 3rem; 
+            padding: 15px 30px; border-radius: 15px;
+            font-size: 2.8rem; 
             font-weight: bold; cursor: grab; color: white;
-            /* 關鍵：讓 iPad 知道這個東西可以摸 */
             touch-action: none; 
-            user-select: none;
             -webkit-user-select: none;
+            user-select: none;
+            position: relative; 
+            z-index: 10;
         }
 
-        /* 拖拉時的樣式 */
-        .word.dnd-dragging { opacity: 0.5; transform: scale(1.1); border-color: var(--accent-color); }
+        .touch-dragging {
+            opacity: 0.8;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+            position: fixed !important; 
+            pointer-events: none;
+            z-index: 9999;
+        }
 
         .feedback-area {
-            font-size: 3.5rem; height: 80px; margin: 10px 0;
+            font-size: 3rem; height: 70px; margin: 5px 0;
             font-weight: bold; text-align: center;
         }
 
@@ -76,7 +92,7 @@
             margin-bottom: 30px;
             display: flex; justify-content: center; align-items: flex-end;
             gap: 15px; padding-bottom: 10px;
-            background-color: rgba(255, 255, 255, 0.05); /* 微微加亮目標區 */
+            background-color: rgba(255, 255, 255, 0.05);
         }
 
         .btn-container { display: flex; gap: 20px; margin-bottom: 80px; }
@@ -90,18 +106,24 @@
 </head>
 <body>
 
-<div id="page1" class="page active">
-    <div class="img-container">
-        <img src="one.jpg" alt="步驟一" class="top-img">
+<div id="startScreen" class="page active">
+    <div class="start-container">
+        <h1 class="start-title">重組句子遊戲</h1>
+        <button class="main-btn" id="listenBtn" onclick="playInstructions()">🔊 聆聽遊戲玩法</button>
+        <button class="main-btn" id="startGameBtn" onclick="enterGame()">🚀 開始遊戲</button>
     </div>
+</div>
+
+<div id="page1" class="page">
+    <div class="img-container"><img src="one.jpg" alt="步驟一" class="top-img"></div>
     <h1>第一關</h1>
-    <div class="pool" id="pool1" ondrop="drop(event)" ondragover="allowDrop(event)">
-        <div class="word" draggable="true" id="w1-2" data-order="2" ondragstart="drag(event)" onclick="speak('放進')">放進</div>
-        <div class="word" draggable="true" id="w1-1" data-order="1" ondragstart="drag(event)" onclick="speak('把雞蛋')">把雞蛋</div>
-        <div class="word" draggable="true" id="w1-3" data-order="3" ondragstart="drag(event)" onclick="speak('凍水')">凍水</div>
+    <div class="pool" id="pool1" ondrop="mouseDrop(event)" ondragover="allowDrop(event)">
+        <div class="word" id="w1-2" data-order="2" draggable="true" ondragstart="mouseDrag(event)">放進</div>
+        <div class="word" id="w1-1" data-order="1" draggable="true" ondragstart="mouseDrag(event)">把雞蛋</div>
+        <div class="word" id="w1-3" data-order="3" draggable="true" ondragstart="mouseDrag(event)">凍水</div>
     </div>
     <div class="feedback-area" id="fb1"></div>
-    <div class="drop-zone" id="zone1" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="drop-zone" id="zone1" ondrop="mouseDrop(event)" ondragover="allowDrop(event)"></div>
     <div class="btn-container">
         <button class="btn reset-btn" id="reset1" onclick="resetPage(1)">❌ 重新試試</button>
         <button class="btn next-btn" id="next1" onclick="nextPage(2)">✔️ 下一題</button>
@@ -109,17 +131,15 @@
 </div>
 
 <div id="page2" class="page">
-    <div class="img-container">
-        <img src="two.jpg" alt="步驟二" class="top-img">
-    </div>
+    <div class="img-container"><img src="two.jpg" alt="步驟二" class="top-img"></div>
     <h1>第二關</h1>
-    <div class="pool" id="pool2" ondrop="drop(event)" ondragover="allowDrop(event)">
-        <div class="word" draggable="true" id="w2-3" data-order="3" ondragstart="drag(event)" onclick="speak('蛋殼')">蛋殼</div>
-        <div class="word" draggable="true" id="w2-1" data-order="1" ondragstart="drag(event)" onclick="speak('輕輕')">輕輕</div>
-        <div class="word" draggable="true" id="w2-2" data-order="2" ondragstart="drag(event)" onclick="speak('敲裂')">敲裂</div>
+    <div class="pool" id="pool2" ondrop="mouseDrop(event)" ondragover="allowDrop(event)">
+        <div class="word" id="w2-3" data-order="3" draggable="true" ondragstart="mouseDrag(event)">蛋殼</div>
+        <div class="word" id="w2-1" data-order="1" draggable="true" ondragstart="mouseDrag(event)">輕輕</div>
+        <div class="word" id="w2-2" data-order="2" draggable="true" ondragstart="mouseDrag(event)">敲裂</div>
     </div>
     <div class="feedback-area" id="fb2"></div>
-    <div class="drop-zone" id="zone2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="drop-zone" id="zone2" ondrop="mouseDrop(event)" ondragover="allowDrop(event)"></div>
     <div class="btn-container">
         <button class="btn reset-btn" id="reset2" onclick="resetPage(2)">❌ 重新試試</button>
         <button class="btn next-btn" id="next2" onclick="nextPage(3)">✔️ 下一題</button>
@@ -127,17 +147,15 @@
 </div>
 
 <div id="page3" class="page">
-    <div class="img-container">
-        <img src="three.jpg" alt="步驟三" class="top-img">
-    </div>
+    <div class="img-container"><img src="three.jpg" alt="步驟三" class="top-img"></div>
     <h1>第三關</h1>
-    <div class="pool" id="pool3" ondrop="drop(event)" ondragover="allowDrop(event)">
-        <div class="word" draggable="true" id="w3-2" data-order="2" ondragstart="drag(event)" onclick="speak('茶葉蛋')">茶葉蛋</div>
-        <div class="word" draggable="true" id="w3-3" data-order="3" ondragstart="drag(event)" onclick="speak('煮好了')">煮好了</div>
-        <div class="word" draggable="true" id="w3-1" data-order="1" ondragstart="drag(event)" onclick="speak('香噴噴的')">香噴噴的</div>
+    <div class="pool" id="pool3" ondrop="mouseDrop(event)" ondragover="allowDrop(event)">
+        <div class="word" id="w3-2" data-order="2" draggable="true" ondragstart="mouseDrag(event)">茶葉蛋</div>
+        <div class="word" id="w3-3" data-order="3" draggable="true" ondragstart="mouseDrag(event)">煮好了</div>
+        <div class="word" id="w3-1" data-order="1" draggable="true" ondragstart="mouseDrag(event)">香噴噴的</div>
     </div>
     <div class="feedback-area" id="fb3"></div>
-    <div class="drop-zone" id="zone3" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="drop-zone" id="zone3" ondrop="mouseDrop(event)" ondragover="allowDrop(event)"></div>
     <div class="btn-container">
         <button class="btn reset-btn" id="reset3" onclick="resetPage(3)">❌ 重新試試</button>
         <button class="btn next-btn" id="next3" onclick="finishGame()">🎉 完成練習</button>
@@ -145,47 +163,51 @@
 </div>
 
 <script>
-    // --- iPad 觸控支援設定 (Magic Code) ---
-    // 這段代碼會自動讓 iPad 支援拖放
-    var polyfillOptions = {
-        dragImageCenterOnTouch: true, // 手指按住時，詞語會置中
-        iterationInterval: 20, // 提升拖拉流暢度
-    };
-    MobileDragDrop.polyfill(polyfillOptions);
+    // ==========================================
+    // 開始畫面與語音指引
+    // ==========================================
+    let instructionUtterance;
 
-    // 解決拖拉時滑動頁面的問題
-    window.addEventListener( 'touchmove', function() {}, {passive: false});
-    // ------------------------------------
+    function playInstructions() {
+        window.speechSynthesis.cancel();
+        
+        instructionUtterance = new SpeechSynthesisUtterance("請學生按以下圖片內容，進行句子重組。");
+        instructionUtterance.lang = 'zh-HK';
+        instructionUtterance.rate = 0.8;
+        
+        const listenBtn = document.getElementById('listenBtn');
+        const startBtn = document.getElementById('startGameBtn');
+        
+        listenBtn.innerText = "🗣️ 正在朗讀...";
+        listenBtn.style.opacity = '0.5';
+        listenBtn.style.pointerEvents = 'none';
 
+        instructionUtterance.onend = function() {
+            listenBtn.innerText = "🔊 再次聆聽玩法";
+            listenBtn.style.opacity = '1';
+            listenBtn.style.pointerEvents = 'auto';
+            startBtn.style.display = 'block';
+        };
+        
+        window.speechSynthesis.speak(instructionUtterance);
+    }
+
+    function enterGame() {
+        window.speechSynthesis.cancel();
+        document.getElementById('startScreen').classList.remove('active');
+        document.getElementById('page1').classList.add('active');
+        speak("第一關");
+    }
+
+    // ==========================================
+    // 通用功能 (語音、檢查結果、跳頁)
+    // ==========================================
     function speak(text) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'zh-HK';
         utterance.rate = 0.8;
         window.speechSynthesis.speak(utterance);
-    }
-
-    function allowDrop(ev) { ev.preventDefault(); }
-    function drag(ev) { 
-        ev.dataTransfer.setData("text", ev.target.id);
-        ev.dataTransfer.effectAllowed = "move";
-    }
-
-    function drop(ev) {
-        ev.preventDefault();
-        var data = ev.dataTransfer.getData("text");
-        var draggedElement = document.getElementById(data);
-        
-        // 確保放到目標容器內
-        if(ev.currentTarget.classList.contains('drop-zone') || ev.currentTarget.classList.contains('pool')) {
-            ev.currentTarget.appendChild(draggedElement);
-            
-            // 如果放到橫線上，讀出聲音
-            if (ev.currentTarget.classList.contains('drop-zone')) {
-                speak(draggedElement.innerText);
-            }
-            checkResult(ev.currentTarget.closest('.page'));
-        }
     }
 
     function checkResult(pageElement) {
@@ -200,7 +222,13 @@
             if (currentOrder === "123") {
                 fb.innerHTML = "✔️ 答對了！";
                 fb.style.color = "#00ff00";
-                speak("答對了！你好棒！");
+                
+                // 【新增功能】：獲取排好順序的完整句子
+                const fullSentence = items.map(i => i.innerText).join('');
+                
+                // 【新增功能】：連同讚美語一起朗讀完整句子
+                speak("答對了！好叻呀！完整句子係：" + fullSentence);
+
                 nextBtn.style.display = 'block';
                 resetBtn.style.display = 'none';
             } else {
@@ -238,6 +266,104 @@
         speak("恭喜你，完成所有練習！");
         alert("🎉 完成所有練習！");
     }
+
+    // ==========================================
+    // 系統 1：滑鼠拖放邏輯 (電腦專用)
+    // ==========================================
+    function allowDrop(ev) { ev.preventDefault(); }
+    function mouseDrag(ev) {
+        ev.dataTransfer.setData("text", ev.target.id);
+        speak(ev.target.innerText); 
+    }
+    function mouseDrop(ev) {
+        ev.preventDefault();
+        var data = ev.dataTransfer.getData("text");
+        var draggedElement = document.getElementById(data);
+        
+        if(ev.currentTarget.classList.contains('drop-zone') || ev.currentTarget.classList.contains('pool')) {
+            ev.currentTarget.appendChild(draggedElement);
+            // 只有當尚未放滿3個詞語，或是放到非 drop-zone 裡時，才讀單一詞語
+            // 如果放進去剛好滿3個，checkResult 會處理朗讀句子，避免聲音衝突
+            if (ev.currentTarget.classList.contains('drop-zone') && ev.currentTarget.querySelectorAll('.word').length < 3) {
+                speak(draggedElement.innerText);
+            }
+            checkResult(ev.currentTarget.closest('.page'));
+        }
+    }
+
+    // ==========================================
+    // 系統 2：觸控拖放邏輯 (iPad/手機專用)
+    // ==========================================
+    let touchItem = null;
+    let touchOffsetX = 0;
+    let touchOffsetY = 0;
+    let originalParent = null;
+
+    document.querySelectorAll('.word').forEach(item => {
+        item.addEventListener('click', function() {
+            speak(item.innerText);
+        });
+
+        item.addEventListener('touchstart', function(e) {
+            e.preventDefault(); 
+            let touch = e.touches[0];
+            touchItem = item;
+            originalParent = item.parentNode;
+
+            speak(item.innerText);
+
+            let rect = item.getBoundingClientRect();
+            touchOffsetX = touch.clientX - rect.left;
+            touchOffsetY = touch.clientY - rect.top;
+
+            item.classList.add('touch-dragging');
+            item.style.left = (touch.clientX - touchOffsetX) + 'px';
+            item.style.top = (touch.clientY - touchOffsetY) + 'px';
+            
+            document.body.appendChild(item);
+        }, {passive: false});
+
+        item.addEventListener('touchmove', function(e) {
+            if (!touchItem) return;
+            e.preventDefault();
+            let touch = e.touches[0];
+            touchItem.style.left = (touch.clientX - touchOffsetX) + 'px';
+            touchItem.style.top = (touch.clientY - touchOffsetY) + 'px';
+        }, {passive: false});
+
+        item.addEventListener('touchend', function(e) {
+            if (!touchItem) return;
+            
+            touchItem.style.visibility = 'hidden'; 
+            let touch = e.changedTouches[0];
+            let elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            touchItem.style.visibility = 'visible';
+
+            touchItem.classList.remove('touch-dragging');
+            touchItem.style.left = '';
+            touchItem.style.top = '';
+
+            let dropZone = elemBelow ? elemBelow.closest('.drop-zone') : null;
+            let pool = elemBelow ? elemBelow.closest('.pool') : null;
+
+            if (dropZone) {
+                dropZone.appendChild(touchItem);
+                
+                // 檢查是否放滿，沒放滿才單獨讀詞語
+                if (dropZone.querySelectorAll('.word').length < 3) {
+                    speak(touchItem.innerText);
+                }
+                
+                checkResult(dropZone.closest('.page'));
+            } else if (pool) {
+                pool.appendChild(touchItem);
+            } else {
+                originalParent.appendChild(touchItem);
+            }
+            
+            touchItem = null;
+        });
+    });
 </script>
 
 </body>
